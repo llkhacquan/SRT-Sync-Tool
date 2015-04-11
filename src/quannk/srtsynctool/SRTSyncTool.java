@@ -29,7 +29,10 @@ import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.ui.SubActionBars;
 import org.eclipse.ui.forms.widgets.FormToolkit;
+import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.ModifyEvent;
 
 public class SRTSyncTool extends ApplicationWindow {
 	private Text enText[] = new Text[5];
@@ -42,7 +45,7 @@ public class SRTSyncTool extends ApplicationWindow {
 	private final FormToolkit formToolkit = new FormToolkit(
 			Display.getDefault());
 	private Text quickMove;
-	private Button btnInsert;
+	private Button btnInsertBefore;
 	private Button btnDelete;
 	private Button btnNextSpeech;
 	private Button btnBackSpeech;
@@ -50,6 +53,7 @@ public class SRTSyncTool extends ApplicationWindow {
 	private SRTFile enFile, viFile;
 	private int iSpeech;
 	private Text indexText1, indexText0, indexText2, indexText3, indexText4;
+	private Button btnInsertAfter;
 
 	/**
 	 * Create the application window.
@@ -96,7 +100,7 @@ public class SRTSyncTool extends ApplicationWindow {
 		{
 			log = new Text(container, SWT.BORDER | SWT.READ_ONLY | SWT.H_SCROLL
 					| SWT.V_SCROLL | SWT.CANCEL);
-			log.setBounds(91, 256, 346, 222);
+			log.setBounds(91, 256, 369, 222);
 		}
 
 		Button btnQuickMove = new Button(container, SWT.NONE);
@@ -106,7 +110,7 @@ public class SRTSyncTool extends ApplicationWindow {
 				quickMoveClicked();
 			}
 		});
-		btnQuickMove.setBounds(599, 254, 75, 25);
+		btnQuickMove.setBounds(624, 252, 75, 25);
 		btnQuickMove.setText("Move");
 
 		Button btnSave = new Button(container, SWT.NONE);
@@ -120,24 +124,24 @@ public class SRTSyncTool extends ApplicationWindow {
 		btnSave.setText("Save");
 		{
 			lblQuickMoveTo = new Label(container, SWT.NONE);
-			lblQuickMoveTo.setBounds(448, 260, 87, 25);
+			lblQuickMoveTo.setBounds(473, 258, 87, 25);
 			lblQuickMoveTo.setText("Quick move to");
 		}
 
 		quickMove = formToolkit.createText(container, "New Text", SWT.NONE);
 		quickMove.setText("1");
-		quickMove.setBounds(537, 256, 53, 21);
+		quickMove.setBounds(562, 254, 53, 21);
 		{
-			btnInsert = new Button(container, SWT.NONE);
-			btnInsert.addSelectionListener(new SelectionAdapter() {
+			btnInsertBefore = new Button(container, SWT.NONE);
+			btnInsertBefore.addSelectionListener(new SelectionAdapter() {
 				@Override
 				public void widgetSelected(SelectionEvent e) {
-					insertSpeech();
+					insertSpeechBefore();
 				}
 			});
-			btnInsert.setBounds(746, 274, 100, 60);
-			formToolkit.adapt(btnInsert, true, true);
-			btnInsert.setText("Insert");
+			btnInsertBefore.setBounds(610, 357, 129, 60);
+			formToolkit.adapt(btnInsertBefore, true, true);
+			btnInsertBefore.setText("Insert Before");
 		}
 		{
 			btnDelete = new Button(container, SWT.NONE);
@@ -147,7 +151,7 @@ public class SRTSyncTool extends ApplicationWindow {
 					deleteSpeech();
 				}
 			});
-			btnDelete.setBounds(758, 417, 75, 25);
+			btnDelete.setBounds(745, 453, 129, 25);
 			formToolkit.adapt(btnDelete, true, true);
 			btnDelete.setText("Delete");
 		}
@@ -159,7 +163,7 @@ public class SRTSyncTool extends ApplicationWindow {
 					nextSpeech();
 				}
 			});
-			btnNextSpeech.setBounds(482, 417, 94, 25);
+			btnNextSpeech.setBounds(475, 357, 129, 60);
 			formToolkit.adapt(btnNextSpeech, true, true);
 			btnNextSpeech.setText("Next speech v");
 		}
@@ -171,9 +175,32 @@ public class SRTSyncTool extends ApplicationWindow {
 					backSpeech();
 				}
 			});
-			btnBackSpeech.setBounds(482, 359, 94, 25);
+			btnBackSpeech.setBounds(475, 292, 129, 60);
 			formToolkit.adapt(btnBackSpeech, true, true);
 			btnBackSpeech.setText("Back speech ^");
+		}
+
+		Button btnMoveToNewSpeech = new Button(container, SWT.NONE);
+		btnMoveToNewSpeech.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				moveToNewSpeech();
+			}
+		});
+		btnMoveToNewSpeech.setBounds(745, 292, 129, 60);
+		formToolkit.adapt(btnMoveToNewSpeech, true, true);
+		btnMoveToNewSpeech.setText("Move to new speech");
+		{
+			btnInsertAfter = new Button(container, SWT.NONE);
+			btnInsertAfter.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					insertSpeechAfter();
+				}
+			});
+			btnInsertAfter.setText("Insert After");
+			btnInsertAfter.setBounds(745, 357, 129, 60);
+			formToolkit.adapt(btnInsertAfter, true, true);
 		}
 		return container;
 	}
@@ -245,6 +272,14 @@ public class SRTSyncTool extends ApplicationWindow {
 		{
 			viText[2] = textVi2 = new Text(container, SWT.BORDER
 					| SWT.READ_ONLY | SWT.MULTI);
+			textVi2.addModifyListener(new ModifyListener() {
+				public void modifyText(ModifyEvent e) {
+					if (iSpeech < viFile.speechs.size()) {
+						viFile.speechs.elementAt(iSpeech).content = viText[2]
+								.getText();
+					}
+				}
+			});
 			textVi2.addFocusListener(new FocusAdapter() {
 				@Override
 				public void focusLost(FocusEvent e) {
@@ -424,10 +459,16 @@ public class SRTSyncTool extends ApplicationWindow {
 		}
 	}
 
-	private void insertSpeech() {
+	private void insertSpeechBefore() {
 		Speech s = new Speech();
 		viFile.speechs.insertElementAt(s, iSpeech);
 		quickMove(iSpeech);
+	}
+
+	private void insertSpeechAfter() {
+		Speech s = new Speech();
+		viFile.speechs.insertElementAt(s, iSpeech + 1);
+		quickMove(iSpeech + 1);
 	}
 
 	private void deleteSpeech() {
@@ -438,8 +479,26 @@ public class SRTSyncTool extends ApplicationWindow {
 	}
 
 	private void saveSRTFile() {
-		String fileName = pathToViSub.getText();
-		fileName = fileName.substring(0, fileName.length() - 4) + "2.srt";
+		Shell shell = Display.getCurrent().getActiveShell();
+		// shell.open ();
+		FileDialog dialog = new FileDialog(shell, SWT.SAVE);
+
+		String[] filterNames = new String[] { "SRT Files", "All Files (*)" };
+		String[] filterExtensions = new String[] { "*.srt", "*" };
+		String filterPath = "/";
+		String platform = SWT.getPlatform();
+		if (platform.equals("win32")) {
+			filterNames = new String[] { "SRT Files", "All Files (*.*)" };
+			filterExtensions = new String[] { "*.srt", "*.*" };
+			filterPath = pathToViSub.getText();
+		}
+		dialog.setFilterNames(filterNames);
+		dialog.setFilterExtensions(filterExtensions);
+		dialog.setFilterPath(filterPath);
+		dialog.setFileName("");
+		String fileName = dialog.open();
+		if (fileName == null)
+			return;
 		try {
 			Writer writer = new OutputStreamWriter(new FileOutputStream(
 					fileName), "UTF-8");
@@ -448,11 +507,16 @@ public class SRTSyncTool extends ApplicationWindow {
 			out.write(SRTFile.UTF8_BOM);
 			for (int i = 0; i < enFile.speechs.size(); i++) {
 				Speech en = enFile.speechs.elementAt(i);
-				Speech vi = viFile.speechs.elementAt(i);
+				Speech vi = null;
+				if (i < viFile.speechs.size())
+					vi = viFile.speechs.elementAt(i);
 				out.write((i + 1) + "\n");
 				out.write(en.begin.toString() + " --> " + en.end.toString()
 						+ "\n");
-				out.write(vi.content + "\n\n");
+				if (vi != null)
+					out.write(vi.content + "\n\n");
+				else
+					out.write(en.content + "\n\n");
 			}
 
 			out.close();
@@ -486,5 +550,17 @@ public class SRTSyncTool extends ApplicationWindow {
 		viFile = SRTFile.parse(pathToViSub.getText());
 		log.append("Vi File has " + viFile.speechs.size() + " speechs\n");
 		quickMove(0);
+	}
+
+	private void moveToNewSpeech() {
+		Point p = viText[2].getSelection();
+		if (p.x == p.y)
+			return;
+		String s = viText[2].getText();
+		String cutString = s.substring(p.x, p.y);
+		s = s.substring(0, p.x) + s.substring(p.y);
+		viText[2].setText(s);
+		insertSpeechAfter();
+		viText[2].setText(cutString);
 	}
 }

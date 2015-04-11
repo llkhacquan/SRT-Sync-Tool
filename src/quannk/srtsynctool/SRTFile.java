@@ -74,8 +74,12 @@ public class SRTFile {
 					}
 					if (currentSpeech.content == "")
 						currentSpeech.content += line;
-					else
-						currentSpeech.content += "\n" + line;
+					else {
+						if (currentSpeech.content.length() + line.length() >= 50)
+							currentSpeech.content += "\n" + line;
+						else
+							currentSpeech.content += " " + line;
+					}
 					line = br.readLine();
 				}
 
@@ -83,12 +87,11 @@ public class SRTFile {
 			}
 			br.close();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			JOptionPane.showMessageDialog(null, "File " + fileName
+					+ " not found");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		} 
 		return srtFile;
 	}
 
