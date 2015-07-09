@@ -316,6 +316,14 @@ public class SRTSyncTool extends ApplicationWindow {
     }
     {
       enText[2] = textEn2 = new Text(container, SWT.BORDER | SWT.READ_ONLY | SWT.MULTI);
+      textEn2.addModifyListener(new ModifyListener() {
+        public void modifyText(ModifyEvent e) {
+          if (iSpeech < enFile.speechs.size()) {
+            enFile.speechs.elementAt(iSpeech).content = enText[2].getText();
+          }
+        }
+      });
+      textEn2.setEditable(true);
       textEn2.setBounds(60, 125, 401, 52);
     }
     {
@@ -534,6 +542,8 @@ public class SRTSyncTool extends ApplicationWindow {
     fileName = dialog.open();
     if (fileName == null)
       return;
+    
+    // save vi file
     try {
       Writer writer = new OutputStreamWriter(new FileOutputStream(fileName), "UTF-8");
       BufferedWriter out = new BufferedWriter(writer);
@@ -551,13 +561,32 @@ public class SRTSyncTool extends ApplicationWindow {
         else
           out.write(en.content + "\n\n");
       }
-
       out.close();
     } catch (IOException e1) {
-      JOptionPane.showMessageDialog(null, "Error!");
+      JOptionPane.showMessageDialog(null, "Error when write vi file!");
       e1.printStackTrace();
       return;
     }
+    
+    // save en file
+    try {
+      Writer writer = new OutputStreamWriter(new FileOutputStream(pathToEnSub.getText()), "UTF-8");
+      BufferedWriter out = new BufferedWriter(writer);
+
+      out.write(SRTFile.UTF8_BOM);
+      for (int i = 0; i < enFile.speechs.size(); i++) {
+        Speech en = enFile.speechs.elementAt(i);
+        out.write((i + 1) + "\n");
+        out.write(en.begin.toString() + " --> " + en.end.toString() + "\n");
+        out.write(en.content + "\n\n");
+      }
+      out.close();
+    } catch (IOException e1) {
+      JOptionPane.showMessageDialog(null, "Error when write en file!");
+      e1.printStackTrace();
+      return;
+    }
+    
     JOptionPane.showMessageDialog(null, "Done");
   }
 
